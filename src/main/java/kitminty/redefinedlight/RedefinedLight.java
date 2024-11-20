@@ -95,7 +95,7 @@ public class RedefinedLight {
                     bufferd.vertex(mat, 1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 0).endVertex();
                     bufferd.vertex(mat, 1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 1).endVertex();
                     bufferd.vertex(mat, -1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 1).endVertex();
-                    Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
+                    //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
 
                 }
             }
