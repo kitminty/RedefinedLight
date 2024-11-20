@@ -1,16 +1,13 @@
-package kitaesion.redefinedlight;
+package kitminty.redefinedlight;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import kitaesion.redefinedlight.mixin.RenderTypeAccessor;
+import kitminty.redefinedlight.mixin.RenderTypeAccessor;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Options;
-import net.minecraft.client.gui.screens.OptionsScreen;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -25,7 +22,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -36,7 +32,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -46,7 +41,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.function.Consumer;
 
-import static kitaesion.redefinedlight.RedefinedLight.ClientForgeEvents.alternator;
+import static kitminty.redefinedlight.RedefinedLight.ClientForgeEvents.alternator;
 
 @Mod(RedefinedLight.modId)
 public class RedefinedLight {
