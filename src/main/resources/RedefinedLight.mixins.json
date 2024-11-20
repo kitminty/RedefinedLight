@@ -1,0 +1,5 @@
+{
+  "required": true,
+  "package": "kitaesion.redefinedlight.mixin",
+  "mixins": ["RenderTypeAccessor"]
+}

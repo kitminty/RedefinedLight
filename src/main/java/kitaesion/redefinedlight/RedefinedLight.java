@@ -1,0 +1,226 @@
+package kitaesion.redefinedlight;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import kitaesion.redefinedlight.mixin.RenderTypeAccessor;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
+import net.minecraft.client.gui.screens.OptionsScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.ConfigScreenHandler;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.event.RegisterShadersEvent;
+import net.minecraftforge.client.settings.KeyConflictContext;
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.lwjgl.glfw.GLFW;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.function.Consumer;
+
+import static kitaesion.redefinedlight.RedefinedLight.ClientForgeEvents.alternator;
+
+@Mod(RedefinedLight.modId)
+public class RedefinedLight {
+    public static final String modId = "redefinedlight"; //Mod ID, you know what the fuck this is
+
+    public RedefinedLight() {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, "redefinedlight-client-config.toml");
+    }
+    //------------------------------------------------ Make Halo Model
+
+    public static final class RenderHelper extends RenderType {
+        public static final RenderType HALO;
+        private static RenderType makeLayer(CompositeState glState) {
+            return RenderTypeAccessor.create("RedefinedLight:halo", DefaultVertexFormat.POSITION_COLOR_TEX, VertexFormat.Mode.QUADS, 64, false, false, glState);
+        }
+        static {
+            TextureStateShard haloTexture = new TextureStateShard(new ResourceLocation("redefinedlight:halo.png"), false, true);
+            CompositeState glState = CompositeState.builder().setTextureState(haloTexture)
+                    .setShaderState(new ShaderStateShard(RedefinedLight::halo))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setCullState(NO_CULL)
+                    .createCompositeState(true);
+            HALO = makeLayer(glState);
+        }
+        private RenderHelper(String string, VertexFormat vertexFormat, VertexFormat.Mode mode, int i, boolean bl, boolean bl2, Runnable runnable, Runnable runnable2) {
+            super(string, vertexFormat, mode, i, bl, bl2, runnable, runnable2);
+            throw new UnsupportedOperationException("Should not be instantiated");
+        }
+    }
+
+    //------------------------------------------------ Halo Renderer
+
+    public static class Renderer<T extends LivingEntity, M extends EntityModel<T>> extends RenderLayer<T, M> {
+        public Renderer(RenderLayerParent<T,M> renderer) {
+            super(renderer);
+        }
+        @Override
+        public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float age, float netHeadYaw, float headPitch) {
+            if(!livingEntity.isInvisible() && alternator) {
+                assert Minecraft.getInstance().player != null;
+                if (livingEntity.getName().getString().equals(Minecraft.getInstance().player.getName().getString())) {
+                    poseStack.translate(0.2, -0.65, 0);
+                    poseStack.mulPose(RedefinedLight.rotateZ(30)); //makes halo tilted
+
+                    poseStack.mulPose(RedefinedLight.rotateY(livingEntity.tickCount + partialTicks)); //turns the halo
+
+                    poseStack.scale(0.75F, -0.75F, -0.75F);
+                    VertexConsumer bufferd = buffer.getBuffer(RenderHelper.HALO);
+                    Matrix4f mat = poseStack.last().pose();
+                    bufferd.vertex(mat, -1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 0).endVertex();
+                    bufferd.vertex(mat, 1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 0).endVertex();
+                    bufferd.vertex(mat, 1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 1).endVertex();
+                    bufferd.vertex(mat, -1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 1).endVertex();
+                    Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
+
+                }
+            }
+        }
+    }
+
+    //------------------------------------------------ Config
+
+    public static class ClientConfig {
+        public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+        public static final ForgeConfigSpec SPEC;
+
+        public static final ForgeConfigSpec.ConfigValue<Integer> ZROT;
+
+
+        static {
+            BUILDER.push("Configs");
+
+            ZROT = BUILDER.comment("Rotation of Z Axis").define("ZRotation", 0);
+
+            BUILDER.pop();
+            SPEC = BUILDER.build();
+        }
+    }
+
+    //------------------------------------------------ Make Halo Shaderinstance
+
+    private static ShaderInstance halo;
+    public interface TriConsumer<R> {
+        void accept(R r);
+    }
+    public static void init(TriConsumer<Consumer<ShaderInstance>> registrations) {
+        registrations.accept(inst -> halo = inst);
+    }
+    public static ShaderInstance halo() {
+        return halo;
+    }
+
+    //------------------------------------------------ Render Halo On Player
+
+    @Mod.EventBusSubscriber(modid = RedefinedLight.modId, bus = Mod.EventBusSubscriber.Bus.MOD)
+    public static class EventHandlerMod {
+        @SubscribeEvent
+        public static void registerShaders(RegisterShadersEvent evt) {
+            init((onLoaded) -> {
+                try {
+                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), new ResourceLocation("redefinedlight", "halo"), DefaultVertexFormat.POSITION_COLOR_TEX), onLoaded);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+        }
+        @SubscribeEvent
+        public static void addEntityLayers(EntityRenderersEvent.AddLayers event) {
+            if(event.getSkin("default") instanceof PlayerRenderer playerRenderer) {
+                playerRenderer.addLayer(new Renderer<>(playerRenderer));
+            }
+            if(event.getSkin("slim") instanceof PlayerRenderer playerRenderer) {
+                playerRenderer.addLayer(new Renderer<>(playerRenderer));
+            }
+        }
+    }
+
+    //------------------------------------------------ Halo Customizer
+
+    public static Vec3 fromEntityCenter(Entity e) {
+        return new Vec3(e.getX(), e.getY() + e.getBbHeight() / 2, e.getZ());
+    }
+    /**
+     * Rotates {@code v} by {@code theta} radians around {@code axis}
+     */
+    public static Vec3 rotate(Vec3 v, double theta, Vec3 axis) {
+        if (Mth.equal(theta, 0)) {
+            return v;
+        }
+        // Rodrigues rotation formula
+        Vec3 k = axis.normalize();
+        float cosTheta = Mth.cos((float) theta);
+        Vec3 firstTerm = v.scale(cosTheta);
+        Vec3 secondTerm = k.cross(v).scale(Mth.sin((float) theta));
+        Vec3 thirdTerm = k.scale(k.dot(v) * (1 - cosTheta));
+        return new Vec3(firstTerm.x + secondTerm.x + thirdTerm.x,
+                firstTerm.y + secondTerm.y + thirdTerm.y,
+                firstTerm.z + secondTerm.z + thirdTerm.z);
+    }
+    public static float toRadians(float degrees) {
+        return (float) (degrees / 180F * Math.PI);
+    }
+    public static Quaternionf rotateX(float degrees) {
+        return new Quaternionf().rotateX(toRadians(degrees));
+    }
+    public static Quaternionf rotateY(float degrees) {
+        return new Quaternionf().rotateY(toRadians(degrees));
+    }
+    public static Quaternionf rotateZ(float degrees) {
+        return new Quaternionf().rotateZ(toRadians(degrees));
+    }
+
+    //------------------------------------------------ Keybinding system
+
+    @Mod.EventBusSubscriber(modid = "redefinedlight", value = Dist.CLIENT)
+    public static class ClientForgeEvents {
+        public static boolean alternator;
+        @SubscribeEvent
+        public static void onKeyInput(InputEvent.Key event) {
+            if(RLKEYM.consumeClick()) {
+                alternator = !alternator;
+                assert Minecraft.getInstance().player != null;
+                Minecraft.getInstance().player.sendSystemMessage(Component.literal(alternator ? "On" : "Off"));
+            }
+        }
+    }
+    @Mod.EventBusSubscriber(modid = "redefinedlight", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
+    public static class ClientModBusEvents {
+        @SubscribeEvent
+        public static void onKeyRegister(RegisterKeyMappingsEvent event) {
+            event.register(RLKEYM);
+        }
+    }
+    public static final String RLCAT = "key.category.redefinedlight.rlcat";
+    public static final String RLKEY = "key.redefinedlight.activatelight";
+    public static final KeyMapping RLKEYM = new KeyMapping(RLKEY, KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, RLCAT);
+}
