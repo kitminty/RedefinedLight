@@ -39,13 +39,17 @@ import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Objects;
 import java.util.function.Consumer;
-
-import static kitminty.redefinedlight.RedefinedLight.ClientForgeEvents.alternator;
 
 @Mod(RedefinedLight.modId)
 public class RedefinedLight {
     public static final String modId = "redefinedlight"; //Mod ID, you know what the fuck this is
+    public static final String RLCAT = "key.category.redefinedlight.rlcat";
+    public static final String RLKEY = "key.redefinedlight.activatelight";
+    public static final KeyMapping RLKEYM = new KeyMapping(RLKEY, KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, RLCAT);
+    private static ShaderInstance halo;
+    static boolean DebugMode = false;
 
     public RedefinedLight() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, "redefinedlight-client-config.toml");
@@ -80,24 +84,18 @@ public class RedefinedLight {
         }
         @Override
         public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float age, float netHeadYaw, float headPitch) {
-            if(!livingEntity.isInvisible() && alternator) {
-                assert Minecraft.getInstance().player != null;
-                if (livingEntity.getName().getString().equals(Minecraft.getInstance().player.getName().getString())) {
-                    poseStack.translate(0.2, -0.65, 0);
-                    poseStack.mulPose(RedefinedLight.rotateZ(30)); //makes halo tilted
-
-                    poseStack.mulPose(RedefinedLight.rotateY(livingEntity.tickCount + partialTicks)); //turns the halo
-
-                    poseStack.scale(0.75F, -0.75F, -0.75F);
-                    VertexConsumer bufferd = buffer.getBuffer(RenderHelper.HALO);
-                    Matrix4f mat = poseStack.last().pose();
-                    bufferd.vertex(mat, -1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 0).endVertex();
-                    bufferd.vertex(mat, 1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 0).endVertex();
-                    bufferd.vertex(mat, 1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 1).endVertex();
-                    bufferd.vertex(mat, -1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 1).endVertex();
-                    //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
-
-                }
+            if(!livingEntity.isInvisible() && ClientForgeEvents.alternator && livingEntity.getName().getString().equals(Objects.requireNonNull(Minecraft.getInstance().player).getName().getString())) {
+                poseStack.translate(0.2, -0.65, 0);
+                poseStack.mulPose(RedefinedLight.rotateZ(30)); //makes halo tilted
+                poseStack.mulPose(RedefinedLight.rotateY(livingEntity.tickCount + partialTicks)); //turns the halo
+                poseStack.scale(0.75F, -0.75F, -0.75F);
+                VertexConsumer bufferd = buffer.getBuffer(RenderHelper.HALO);
+                Matrix4f mat = poseStack.last().pose();
+                bufferd.vertex(mat, -1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 0).endVertex();
+                bufferd.vertex(mat, 1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 0).endVertex();
+                bufferd.vertex(mat, 1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 1).endVertex();
+                bufferd.vertex(mat, -1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 1).endVertex();
+                if (DebugMode) Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
             }
         }
     }
@@ -123,7 +121,6 @@ public class RedefinedLight {
 
     //------------------------------------------------ Make Halo Shaderinstance
 
-    private static ShaderInstance halo;
     public interface TriConsumer<R> {
         void accept(R r);
     }
@@ -134,15 +131,15 @@ public class RedefinedLight {
         return halo;
     }
 
-    //------------------------------------------------ Render Halo On Player
+    //------------------------------------------------ Subscribers
 
-    @Mod.EventBusSubscriber(modid = RedefinedLight.modId, bus = Mod.EventBusSubscriber.Bus.MOD)
+    @Mod.EventBusSubscriber(modid = RedefinedLight.modId, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class EventHandlerMod {
         @SubscribeEvent
         public static void registerShaders(RegisterShadersEvent evt) {
             init((onLoaded) -> {
                 try {
-                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), new ResourceLocation("redefinedlight", "halo"), DefaultVertexFormat.POSITION_COLOR_TEX), onLoaded);
+                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), new ResourceLocation(RedefinedLight.modId, "halo"), DefaultVertexFormat.POSITION_COLOR_TEX), onLoaded);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
@@ -155,6 +152,22 @@ public class RedefinedLight {
             }
             if(event.getSkin("slim") instanceof PlayerRenderer playerRenderer) {
                 playerRenderer.addLayer(new Renderer<>(playerRenderer));
+            }
+        }
+        @SubscribeEvent
+        public static void onKeyRegister(RegisterKeyMappingsEvent event) {
+            event.register(RLKEYM);
+        }
+    }
+    @Mod.EventBusSubscriber(modid = RedefinedLight.modId, value = Dist.CLIENT)
+    public static class ClientForgeEvents {
+        public static boolean alternator;
+        @SubscribeEvent
+        public static void onKeyInput(InputEvent.Key event) {
+            if(RLKEYM.consumeClick()) {
+                alternator = !alternator;
+                assert Minecraft.getInstance().player != null;
+                Minecraft.getInstance().player.sendSystemMessage(Component.literal(alternator ? "On" : "Off"));
             }
         }
     }
@@ -193,29 +206,4 @@ public class RedefinedLight {
     public static Quaternionf rotateZ(float degrees) {
         return new Quaternionf().rotateZ(toRadians(degrees));
     }
-
-    //------------------------------------------------ Keybinding system
-
-    @Mod.EventBusSubscriber(modid = "redefinedlight", value = Dist.CLIENT)
-    public static class ClientForgeEvents {
-        public static boolean alternator;
-        @SubscribeEvent
-        public static void onKeyInput(InputEvent.Key event) {
-            if(RLKEYM.consumeClick()) {
-                alternator = !alternator;
-                assert Minecraft.getInstance().player != null;
-                Minecraft.getInstance().player.sendSystemMessage(Component.literal(alternator ? "On" : "Off"));
-            }
-        }
-    }
-    @Mod.EventBusSubscriber(modid = "redefinedlight", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static class ClientModBusEvents {
-        @SubscribeEvent
-        public static void onKeyRegister(RegisterKeyMappingsEvent event) {
-            event.register(RLKEYM);
-        }
-    }
-    public static final String RLCAT = "key.category.redefinedlight.rlcat";
-    public static final String RLKEY = "key.redefinedlight.activatelight";
-    public static final KeyMapping RLKEYM = new KeyMapping(RLKEY, KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, RLCAT);
 }
