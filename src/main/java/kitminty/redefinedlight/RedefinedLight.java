@@ -3,7 +3,6 @@ package kitminty.redefinedlight;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import kitminty.redefinedlight.mixin.RenderTypeAccessor;
 import net.minecraft.client.KeyMapping;
@@ -33,7 +32,6 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
@@ -49,7 +47,6 @@ public class RedefinedLight {
     public static final String RLKEY = "key.redefinedlight.activatelight";
     public static final KeyMapping RLKEYM = new KeyMapping(RLKEY, KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, RLCAT);
     private static ShaderInstance halo;
-    static boolean DebugMode = false;
 
     public RedefinedLight() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, "redefinedlight-client-config.toml");
@@ -85,17 +82,16 @@ public class RedefinedLight {
         @Override
         public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float age, float netHeadYaw, float headPitch) {
             if(!livingEntity.isInvisible() && ClientForgeEvents.alternator && livingEntity.getName().getString().equals(Objects.requireNonNull(Minecraft.getInstance().player).getName().getString())) {
-                poseStack.translate(0.2, -0.65, 0);
-                poseStack.mulPose(RedefinedLight.rotateZ(30)); //makes halo tilted
-                poseStack.mulPose(RedefinedLight.rotateY(livingEntity.tickCount + partialTicks)); //turns the halo
-                poseStack.scale(0.75F, -0.75F, -0.75F);
-                VertexConsumer bufferd = buffer.getBuffer(RenderHelper.HALO);
-                Matrix4f mat = poseStack.last().pose();
-                bufferd.vertex(mat, -1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 0).endVertex();
-                bufferd.vertex(mat, 1F, 0, -1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 0).endVertex();
-                bufferd.vertex(mat, 1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(1, 1).endVertex();
-                bufferd.vertex(mat, -1F, 0, 1F).color(1.0F, 1.0F, 1.0F, 1.0F).uv(0, 1).endVertex();
-                if (DebugMode) Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
+                poseStack.translate(0.2, -0.65, 0); //determines halo position
+                //Boo - Isaac
+                poseStack.mulPose(RedefinedLight.rotateZ(ClientConfig.ZROT.get())); //makes halo tilted
+                poseStack.mulPose(RedefinedLight.rotateY((float)((Math.floor((livingEntity.tickCount+partialTicks)*0.1/2)+(((livingEntity.tickCount+partialTicks)*0.1%2<=1)?0:0.5*Math.sin(Math.PI*((livingEntity.tickCount+partialTicks)*0.1-1)-0.5*Math.PI)+0.5))*27)+((livingEntity.tickCount+partialTicks)*0.027F))); //turns the halo like a clock
+                poseStack.scale(0.75F, -0.75F, -0.75F); //sets halo size
+                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),-1F,0,-1F).color(1.0F,1.0F,1.0F,1.0F).uv(0,0).endVertex();
+                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),1F,0,-1F).color(1.0F,1.0F,1.0F,1.0F).uv(1,0).endVertex();
+                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),1F,0,1F).color(1.0F,1.0F,1.0F,1.0F).uv(1,1).endVertex();
+                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),-1F,0,1F).color(1.0F,1.0F,1.0F,1.0F).uv(0,1).endVertex();
+                //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
             }
         }
     }
@@ -112,7 +108,7 @@ public class RedefinedLight {
         static {
             BUILDER.push("Configs");
 
-            ZROT = BUILDER.comment("Rotation of Z Axis").define("ZRotation", 0);
+            ZROT = BUILDER.comment("Rotation of Z Axis").define("ZRotation", 30);
 
             BUILDER.pop();
             SPEC = BUILDER.build();
