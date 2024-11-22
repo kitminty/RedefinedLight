@@ -21,18 +21,16 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.client.event.RegisterShadersEvent;
-import net.minecraftforge.client.settings.KeyConflictContext;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.ModLoadingState;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
+import net.neoforged.neoforge.client.settings.KeyConflictContext;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
@@ -101,10 +99,10 @@ public class RedefinedLight {
     //------------------------------------------------ Config
 
     public static class ClientConfig {
-        public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-        public static final ForgeConfigSpec SPEC;
+        public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+        public static final ModConfigSpec SPEC;
 
-        public static final ForgeConfigSpec.ConfigValue<Integer> ZROT;
+        public static final ModConfigSpec.ConfigValue<Integer> ZROT;
 
 
         static {
@@ -131,7 +129,7 @@ public class RedefinedLight {
 
     //------------------------------------------------ Subscribers
 
-    @Mod.EventBusSubscriber(modid = RedefinedLight.modId, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(modid = RedefinedLight.modId, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
     public static class EventHandlerMod {
         @SubscribeEvent
         public static void registerShaders(RegisterShadersEvent evt) {
@@ -145,10 +143,10 @@ public class RedefinedLight {
         }
         @SubscribeEvent
         public static void addEntityLayers(EntityRenderersEvent.AddLayers event) {
-            if(event.getPlayerSkin(PlayerSkin.Model.WIDE) instanceof PlayerRenderer playerRenderer) {
+            if(event.getSkin(PlayerSkin.Model.WIDE) instanceof PlayerRenderer playerRenderer) {
                 playerRenderer.addLayer(new Renderer<>(playerRenderer));
             }
-            if(event.getPlayerSkin(PlayerSkin.Model.SLIM) instanceof PlayerRenderer playerRenderer) {
+            if(event.getSkin(PlayerSkin.Model.SLIM) instanceof PlayerRenderer playerRenderer) {
                 playerRenderer.addLayer(new Renderer<>(playerRenderer));
             }
         }
@@ -157,7 +155,7 @@ public class RedefinedLight {
             event.register(RLKEYM);
         }
     }
-    @Mod.EventBusSubscriber(modid = RedefinedLight.modId, value = Dist.CLIENT)
+    @EventBusSubscriber(modid = RedefinedLight.modId, value = Dist.CLIENT)
     public static class ClientForgeEvents {
         public static boolean alternator;
         @SubscribeEvent
