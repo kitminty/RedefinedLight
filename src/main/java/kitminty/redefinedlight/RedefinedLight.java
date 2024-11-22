@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -29,6 +30,7 @@ import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.ModLoadingState;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import org.jetbrains.annotations.NotNull;
@@ -49,17 +51,17 @@ public class RedefinedLight {
     private static ShaderInstance halo;
 
     public RedefinedLight() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, "redefinedlight-client-config.toml");
+        //ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, "redefinedlight-client-config.toml");
     }
     //------------------------------------------------ Make Halo Model
 
     public static final class RenderHelper extends RenderType {
         public static final RenderType HALO;
         private static RenderType makeLayer(CompositeState glState) {
-            return RenderTypeAccessor.create("RedefinedLight:halo", DefaultVertexFormat.POSITION_COLOR_TEX, VertexFormat.Mode.QUADS, 64, false, false, glState);
+            return RenderTypeAccessor.create("RedefinedLight:halo", DefaultVertexFormat.POSITION_TEX_COLOR/*POSITION_COLOR_TEX*/, VertexFormat.Mode.QUADS, 64, false, false, glState);
         }
         static {
-            TextureStateShard haloTexture = new TextureStateShard(new ResourceLocation("redefinedlight:halo.png"), false, true);
+            TextureStateShard haloTexture = new TextureStateShard(ResourceLocation.parse("redefinedlight:halo.png"), false, true);
             CompositeState glState = CompositeState.builder().setTextureState(haloTexture)
                     .setShaderState(new ShaderStateShard(RedefinedLight::halo))
                     .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
@@ -84,7 +86,7 @@ public class RedefinedLight {
             if(!livingEntity.isInvisible() && ClientForgeEvents.alternator && livingEntity.getName().getString().equals(Objects.requireNonNull(Minecraft.getInstance().player).getName().getString())) {
                 poseStack.translate(0.2, -0.65, 0); //determines halo position
                 //Boo - Isaac
-                poseStack.mulPose(RedefinedLight.rotateZ(ClientConfig.ZROT.get())); //makes halo tilted
+                poseStack.mulPose(RedefinedLight.rotateZ(30/*ClientConfig.ZROT.get()*/)); //makes halo tilted
                 poseStack.mulPose(RedefinedLight.rotateY((float)((Math.floor((livingEntity.tickCount+partialTicks)*0.1/2)+(((livingEntity.tickCount+partialTicks)*0.1%2<=1)?0:0.5*Math.sin(Math.PI*((livingEntity.tickCount+partialTicks)*0.1-1)-0.5*Math.PI)+0.5))*27)+((livingEntity.tickCount+partialTicks)*0.027F))); //turns the halo like a clock
                 poseStack.scale(0.75F, -0.75F, -0.75F); //sets halo size
                 buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),-1F,0,-1F).setColor(1.0F,1.0F,1.0F,1.0F).setUv(0,0);
@@ -135,7 +137,7 @@ public class RedefinedLight {
         public static void registerShaders(RegisterShadersEvent evt) {
             init((onLoaded) -> {
                 try {
-                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), ResourceLocation.parse("redefinedlight:halo.png"), DefaultVertexFormat.POSITION_COLOR_TEX), onLoaded);
+                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), ResourceLocation.parse("redefinedlight:halo.png"), DefaultVertexFormat.POSITION_TEX_COLOR/*POSITION_COLOR_TEX*/), onLoaded);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
@@ -143,10 +145,10 @@ public class RedefinedLight {
         }
         @SubscribeEvent
         public static void addEntityLayers(EntityRenderersEvent.AddLayers event) {
-            if(event.getSkin("default") instanceof PlayerRenderer playerRenderer) {
+            if(event.getPlayerSkin(PlayerSkin.Model.WIDE) instanceof PlayerRenderer playerRenderer) {
                 playerRenderer.addLayer(new Renderer<>(playerRenderer));
             }
-            if(event.getSkin("slim") instanceof PlayerRenderer playerRenderer) {
+            if(event.getPlayerSkin(PlayerSkin.Model.SLIM) instanceof PlayerRenderer playerRenderer) {
                 playerRenderer.addLayer(new Renderer<>(playerRenderer));
             }
         }
