@@ -87,10 +87,10 @@ public class RedefinedLight {
                 poseStack.mulPose(RedefinedLight.rotateZ(ClientConfig.ZROT.get())); //makes halo tilted
                 poseStack.mulPose(RedefinedLight.rotateY((float)((Math.floor((livingEntity.tickCount+partialTicks)*0.1/2)+(((livingEntity.tickCount+partialTicks)*0.1%2<=1)?0:0.5*Math.sin(Math.PI*((livingEntity.tickCount+partialTicks)*0.1-1)-0.5*Math.PI)+0.5))*27)+((livingEntity.tickCount+partialTicks)*0.027F))); //turns the halo like a clock
                 poseStack.scale(0.75F, -0.75F, -0.75F); //sets halo size
-                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),-1F,0,-1F).color(1.0F,1.0F,1.0F,1.0F).uv(0,0).endVertex();
-                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),1F,0,-1F).color(1.0F,1.0F,1.0F,1.0F).uv(1,0).endVertex();
-                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),1F,0,1F).color(1.0F,1.0F,1.0F,1.0F).uv(1,1).endVertex();
-                buffer.getBuffer(RenderHelper.HALO).vertex(poseStack.last().pose(),-1F,0,1F).color(1.0F,1.0F,1.0F,1.0F).uv(0,1).endVertex();
+                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),-1F,0,-1F).setColor(1.0F,1.0F,1.0F,1.0F).setUv(0,0);
+                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),1F,0,-1F).setColor(1.0F,1.0F,1.0F,1.0F).setUv(1,0);
+                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),1F,0,1F).setColor(1.0F,1.0F,1.0F,1.0F).setUv(1,1);
+                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),-1F,0,1F).setColor(1.0F,1.0F,1.0F,1.0F).setUv(0,1);
                 //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(ClientConfig.ZROT.get())));
             }
         }
@@ -135,7 +135,7 @@ public class RedefinedLight {
         public static void registerShaders(RegisterShadersEvent evt) {
             init((onLoaded) -> {
                 try {
-                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), new ResourceLocation(RedefinedLight.modId, "halo"), DefaultVertexFormat.POSITION_COLOR_TEX), onLoaded);
+                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), ResourceLocation.parse("redefinedlight:halo.png"), DefaultVertexFormat.POSITION_COLOR_TEX), onLoaded);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }

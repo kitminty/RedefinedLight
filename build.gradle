@@ -1,102 +1,117 @@
-buildscript {
-    repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
-        mavenCentral()
-    }
-    dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6+', changing: true
-        classpath group: 'org.spongepowered', name: 'mixingradle', version: '0.7.+'
-    }
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0.24,6.2)'
 }
 
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.spongepowered.mixin'
+version = mod_version
+group = mod_group_id
 
-mixin {
-    config "RedefinedLight.mixins.json"
+base {
+    archivesName = mod_id
 }
 
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-version = "${minecraft_version}-${mod_version}"
-group = "${mod_author}.${mod_id}"
-archivesBaseName = "${mod_id}-forge"
-
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 minecraft {
-    mappings channel: 'official', version: '1.20'
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+    mappings channel: mapping_channel, version: mapping_version
+    reobf = false
+    copyIdeResources = true
 
     runs {
-        client {
+        configureEach {
             workingDirectory project.file('run')
 
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            property 'forge.logging.console.level', 'debug'
+            property 'forge.logging.markers', 'REGISTRIES'
 
-            mods {
-                redefinedlight {
-                    source sourceSets.main
-                }
-            }
+            property 'forge.logging.console.level', 'debug'
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', mod_id
         }
 
         server {
-            workingDirectory project.file('run')
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+        }
 
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                redefinedlight {
-                    source sourceSets.main
-                }
-            }
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
         }
 
         data {
-            workingDirectory project.file('run')
+            workingDirectory project.file('run-data')
 
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', 'redefinedlight', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-
-            mods {
-                redefinedlight {
-                    source sourceSets.main
-                }
-            }
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
         }
     }
-}
-
-dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    //runtimeOnly fg.deobf("fuzs.forgeconfigscreens:forgeconfigscreens-forge:8.0.2")
-    //runtimeOnly fg.deobf("mezz.jei:jei_1.20.1:15.20.0.105:api")
-    //runtimeOnly "mezz.jei:jei_1.11.2:4.5.0.294"
-
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-jar {
+repositories {
+
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation('net.sf.jopt-simple:jopt-simple:5.0.4') { version { strictly '5.0.4' } }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version: forge_version, forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_author, mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
     manifest {
         attributes([
-                "Specification-Title"     : "${mod_id}",
-                "Specification-Vendor"    : "${mod_author}",
-                "Specification-Version"   : "1",
-                "Implementation-Title"    : "${mod_id}",
-                "Implementation-Version"  : "${minecraft_version}-${mod_version}",
-                "Implementation-Vendor"   : "${mod_author}",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+            'Specification-Title'     : mod_id,
+            'Specification-Vendor'    : mod_author,
+            'Specification-Version'   : '1', // We are version 1 of ourselves
+            'Implementation-Title'    : project.name,
+            'Implementation-Version'  : project.jar.archiveVersion,
+            'Implementation-Vendor'   : mod_author
         ])
     }
 }
 
-jar.finalizedBy('reobfJar')
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+eclipse {
+    synchronizationTasks 'genEclipseRuns'
+}
+
+sourceSets.each {
+    def dir = layout.buildDirectory.dir("sourcesSets/$it.name")
+    it.output.resourcesDir = dir
+    it.java.destinationDirectory = dir
 }
