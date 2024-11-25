@@ -1,4 +1,12 @@
 {
   "key.redefinedlight.activatelight": "Enable Halo",
-  "key.category.redefinedlight.rlcat": "KitHalo"
+  "key.category.redefinedlight.rlcat": "KitHalo",
+  "redefinedlight.configuration.Configs": "RedefinedLight Config",
+  "redefinedlight.configuration.halo_z_rotation": "Halo Z Rotation",
+  "redefinedlight.configuration.Configs.button": "Edit Config",
+  "redefinedlight.configuration.title": "redefinedlight.configuration.title(idk)",
+  "redefinedlight.configuration.section.redefinedlight.common.toml.title": "RedefinedLight Config",
+  "redefinedlight.configuration.section.redefinedlight.common.toml": "redefinedlight.configuration.section.redefinedlight.common.toml(idk)",
+  "redefinedlight.configuration.Configs.tooltip": "Edit Config For RedefinedLight",
+  "redefinedlight.configuration.halo_z_rotation.tooltip": "Edit Halo Z Rotation"
 }
