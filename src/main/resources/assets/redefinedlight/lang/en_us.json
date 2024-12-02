@@ -3,10 +3,16 @@
   "key.category.redefinedlight.rlcat": "KitHalo",
   "redefinedlight.configuration.Configs": "RedefinedLight Config",
   "redefinedlight.configuration.halo_z_rotation": "Halo Z Rotation",
+  "redefinedlight.configuration.halo_x_position": "Halo X Position",
+  "redefinedlight.configuration.halo_y_position": "Halo Y Position",
+  "redefinedlight.configuration.halo_z_position": "Halo Z Position",
+  "redefinedlight.configuration.halo_z_rotation.tooltip": "Edit Halo Z Rotation",
+  "redefinedlight.configuration.halo_x_position.tooltip": "Edit Halo X Position",
+  "redefinedlight.configuration.halo_y_position.tooltip": "Edit Halo Y Position",
+  "redefinedlight.configuration.halo_z_position.tooltip": "Edit Halo Z Position",
   "redefinedlight.configuration.Configs.button": "Edit Config",
   "redefinedlight.configuration.title": "redefinedlight.configuration.title(idk)",
   "redefinedlight.configuration.section.redefinedlight.common.toml.title": "RedefinedLight Config",
   "redefinedlight.configuration.section.redefinedlight.common.toml": "redefinedlight.configuration.section.redefinedlight.common.toml(idk)",
-  "redefinedlight.configuration.Configs.tooltip": "Edit Config For RedefinedLight",
-  "redefinedlight.configuration.halo_z_rotation.tooltip": "Edit Halo Z Rotation"
+  "redefinedlight.configuration.Configs.tooltip": "Edit Config For RedefinedLight"
 }

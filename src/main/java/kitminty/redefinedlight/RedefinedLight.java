@@ -17,10 +17,10 @@ import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
+//import net.minecraft.util.Mth;
+//import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.phys.Vec3;
+//import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -63,10 +63,16 @@ public class RedefinedLight {
         public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
         public static final ModConfigSpec SPEC;
         public static final ModConfigSpec.ConfigValue<Integer> ZRotation;
+        public static final ModConfigSpec.ConfigValue<Double> XPosition;
+        public static final ModConfigSpec.ConfigValue<Double> YPosition;
+        public static final ModConfigSpec.ConfigValue<Double> ZPosition;
 
         static {
             BUILDER.push("Configs");
             ZRotation = BUILDER.comment("Z Rotation On Halo").define("halo_z_rotation", 30);
+            XPosition = BUILDER.comment("X Position On Halo").define("halo_x_position", 0.2);
+            YPosition = BUILDER.comment("Y Position On Halo").define("halo_y_position", -0.65);
+            ZPosition = BUILDER.comment("Z Position On Halo").define("halo_z_position", 0.0);
             BUILDER.pop();
             SPEC = BUILDER.build();
         }
@@ -103,7 +109,7 @@ public class RedefinedLight {
         @Override
         public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float age, float netHeadYaw, float headPitch) {
             if(!livingEntity.isInvisible() && ClientForgeEvents.alternator && livingEntity.getName().getString().equals(Objects.requireNonNull(Minecraft.getInstance().player).getName().getString())) {
-                poseStack.translate(0.2, -0.65, 0); //determines halo position
+                poseStack.translate(ClientConfig.XPosition.get(), ClientConfig.YPosition.get(), ClientConfig.ZPosition.get()); //determines halo position
                 //Boo - Isaac
                 poseStack.mulPose(RedefinedLight.rotateZ(ClientConfig.ZRotation.get())); //makes halo tilted
                 poseStack.mulPose(RedefinedLight.rotateY((float)((Math.floor((livingEntity.tickCount+partialTicks)*0.1/2)+(((livingEntity.tickCount+partialTicks)*0.1%2<=1)?0:0.5*Math.sin(Math.PI*((livingEntity.tickCount+partialTicks)*0.1-1)-0.5*Math.PI)+0.5))*27)+((livingEntity.tickCount+partialTicks)*0.027F))); //turns the halo like a clock
@@ -172,12 +178,11 @@ public class RedefinedLight {
 
     //------------------------------------------------ Halo Customizer
 
+    /*
     public static Vec3 fromEntityCenter(Entity e) {
         return new Vec3(e.getX(), e.getY() + e.getBbHeight() / 2, e.getZ());
     }
-    /**
-     * Rotates {@code v} by {@code theta} radians around {@code axis}
-     */
+     //Rotates {@code v} by {@code theta} radians around {@code axis}
     public static Vec3 rotate(Vec3 v, double theta, Vec3 axis) {
         if (Mth.equal(theta, 0)) {
             return v;
@@ -192,12 +197,15 @@ public class RedefinedLight {
                 firstTerm.y + secondTerm.y + thirdTerm.y,
                 firstTerm.z + secondTerm.z + thirdTerm.z);
     }
+     */
     public static float toRadians(float degrees) {
         return (float) (degrees / 180F * Math.PI);
     }
+    /*
     public static Quaternionf rotateX(float degrees) {
         return new Quaternionf().rotateX(toRadians(degrees));
     }
+    */
     public static Quaternionf rotateY(float degrees) {
         return new Quaternionf().rotateY(toRadians(degrees));
     }
