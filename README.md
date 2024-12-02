@@ -1,6 +1,7 @@
 # RedefinedLight
 
 Lemniscate formula:
+
 int sized = 1;
 double xx = (sized*Math.sin(2*((livingEntity.tickCount+partialTicks)*0.05)))/(3-Math.cos(2*((livingEntity.tickCount+partialTicks)*0.05)));
 double zz = (2*sized*Math.cos(((livingEntity.tickCount+partialTicks)*0.05)))/(3-Math.cos(2*((livingEntity.tickCount+partialTicks)*0.05)));
