@@ -1,9 +1,9 @@
 modLoader="javafml"
-loaderVersion="[2,)"
+loaderVersion="[4,)"
 license="https://unlicense.org"
 [[mods]]
 modId="redefinedlight"
-version="1.0"
+version="${mod_version}"
 displayName="RedefinedLight"
 logoFile="logo.png"
 credits="Kitminty"
@@ -14,6 +14,6 @@ config="RedefinedLight.mixins.json"
 [[dependencies.redefinedlight]]
   modId="neoforge"
   mandatory=true
-  versionRange="[2,)"
+  versionRange="[4,)"
   ordering="NONE"
   side="BOTH"
