@@ -17,10 +17,7 @@ import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-//import net.minecraft.util.Mth;
-//import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-//import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -62,6 +59,9 @@ public class RedefinedLight {
     public static class ClientConfig {
         public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
         public static final ModConfigSpec SPEC;
+        public static final ModConfigSpec.ConfigValue<Boolean> EnableClock;
+        public static final ModConfigSpec.ConfigValue<Integer> XRotation;
+        public static final ModConfigSpec.ConfigValue<Integer> YRotation;
         public static final ModConfigSpec.ConfigValue<Integer> ZRotation;
         public static final ModConfigSpec.ConfigValue<Double> XPosition;
         public static final ModConfigSpec.ConfigValue<Double> YPosition;
@@ -69,6 +69,9 @@ public class RedefinedLight {
 
         static {
             BUILDER.push("Configs");
+            EnableClock = BUILDER.comment("Enable Clock Rotation On Halo").define("enable_halo_clock_rotation", true);
+            XRotation = BUILDER.comment("X Rotation On Halo").define("halo_x_rotation", 0);
+            YRotation = BUILDER.comment("Y Rotation On Halo").define("halo_y_rotation", 0);
             ZRotation = BUILDER.comment("Z Rotation On Halo").define("halo_z_rotation", 30);
             XPosition = BUILDER.comment("X Position On Halo").define("halo_x_position", 0.2);
             YPosition = BUILDER.comment("Y Position On Halo").define("halo_y_position", -0.65);
@@ -111,8 +114,13 @@ public class RedefinedLight {
             if(!livingEntity.isInvisible() && ClientForgeEvents.alternator && livingEntity.getName().getString().equals(Objects.requireNonNull(Minecraft.getInstance().player).getName().getString())) {
                 poseStack.translate(ClientConfig.XPosition.get(), ClientConfig.YPosition.get(), ClientConfig.ZPosition.get()); //determines halo position
                 //Boo - Isaac
+                poseStack.mulPose(RedefinedLight.rotateX(ClientConfig.XRotation.get()));
                 poseStack.mulPose(RedefinedLight.rotateZ(ClientConfig.ZRotation.get())); //makes halo tilted
-                poseStack.mulPose(RedefinedLight.rotateY((float)((Math.floor((livingEntity.tickCount+partialTicks)*0.1/2)+(((livingEntity.tickCount+partialTicks)*0.1%2<=1)?0:0.5*Math.sin(Math.PI*((livingEntity.tickCount+partialTicks)*0.1-1)-0.5*Math.PI)+0.5))*27)+((livingEntity.tickCount+partialTicks)*0.027F))); //turns the halo like a clock
+                if (ClientConfig.EnableClock.get()) {
+                    poseStack.mulPose(RedefinedLight.rotateY((float)((Math.floor((livingEntity.tickCount+partialTicks)*0.1/2)+(((livingEntity.tickCount+partialTicks)*0.1%2<=1)?0:0.5*Math.sin(Math.PI*((livingEntity.tickCount+partialTicks)*0.1-1)-0.5*Math.PI)+0.5))*27)+((livingEntity.tickCount+partialTicks)*0.027F))); //turns the halo like a clock
+                } else {
+                    poseStack.mulPose(RedefinedLight.rotateY(ClientConfig.YRotation.get()));
+                }
                 poseStack.scale(0.75F, -0.75F, -0.75F); //sets halo size
                 buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),-1F,0,-1F).setUv(0,0).setColor(1.0F,1.0F,1.0F,1.0F);
                 buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),1F,0,-1F).setUv(1,0).setColor(1.0F,1.0F,1.0F,1.0F);
@@ -201,11 +209,9 @@ public class RedefinedLight {
     public static float toRadians(float degrees) {
         return (float) (degrees / 180F * Math.PI);
     }
-    /*
     public static Quaternionf rotateX(float degrees) {
         return new Quaternionf().rotateX(toRadians(degrees));
     }
-    */
     public static Quaternionf rotateY(float degrees) {
         return new Quaternionf().rotateY(toRadians(degrees));
     }
