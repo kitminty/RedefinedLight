@@ -3,11 +3,22 @@ package kitminty.redefinedlight;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import kitminty.redefinedlight.mixin.RenderTypeAccessor;
+import net.minecraft.Util;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.Model;
+import net.minecraft.client.model.geom.EntityModelSet;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
+import net.minecraft.client.model.geom.builders.CubeListBuilder;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
+import net.minecraft.client.model.geom.builders.MeshDefinition;
+import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
@@ -35,12 +46,13 @@ import org.apache.commons.lang3.exception.UncheckedException;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
-import kitminty.redefinedlight.ModelTest.*;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Mod(RedefinedLight.modId)
 public class RedefinedLight {
@@ -83,11 +95,86 @@ public class RedefinedLight {
             SPEC = BUILDER.build();
         }
     }
-    //------------------------------------------------ Make Halo Model
+
+    //------------------------------------------------ Make Halo
+
+    public static class Halo extends Modeler {
+
+        public static final ModelLayerLocation HALO_LAYER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(RedefinedLight.modId, "halo"), "main");
+        private static final ResourceLocation HALO_TEXTURE = ResourceLocation.parse("redefinedlight:halo.png");
+
+        private static final ModelPartData HALO = new ModelPartData("halo", CubeListBuilder.create()
+                .texOffs(0, 0)
+                .addBox(-128, 0, -128, 128, 0.027F, 128));
+
+        public static LayerDefinition createLayerDefinition() {
+            return createLayerDefinition(128, 128, HALO);
+        }
+
+        public final RenderType RENDER_TYPE = renderType(HALO_TEXTURE);
+        private final ModelPart halo;
+
+        public Halo(EntityModelSet entityModelSet) {
+            super(RenderHelper.HALORESOURCERENDERTYPE);
+            ModelPart root = entityModelSet.bakeLayer(HALO_LAYER);
+            halo = HALO.getFromRoot(root);
+            halo.xScale = 0.19F;
+            halo.zScale = 0.19F;
+            halo.x = 12.16F;
+            halo.z = 12.16F;
+        }
+
+        public void render(@NotNull PoseStack matrix, @NotNull MultiBufferSource renderer, int light, int overlayLight, int color) {
+            renderToBuffer(matrix, renderer.getBuffer(RENDER_TYPE), light, overlayLight, color);
+        }
+
+        @Override
+        public void renderToBuffer(@NotNull PoseStack matrix, @NotNull VertexConsumer vertexBuilder, int light, int overlayLight, int color) {
+            halo.render(matrix, vertexBuilder, light, overlayLight, color);
+        }
+    }
+
+    //------------------------------------------------ Make EnergyCube
+
+    public static class EnergyCube extends Modeler {
+
+        public static final ModelLayerLocation CORE_LAYER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(RedefinedLight.modId, "energy_core"), "main");
+        private static final ResourceLocation CORE_TEXTURE = ResourceLocation.parse("redefinedlight:energy_core.png");
+
+        private static final ModelPartData CUBE = new ModelPartData("cube", CubeListBuilder.create()
+                .texOffs(0, 0)
+                .addBox(-8, -8, -8, 16, 16, 16));
+
+        public static LayerDefinition createLayerDefinition() {
+            return createLayerDefinition(32, 32, CUBE);
+        }
+
+        public final RenderType RENDER_TYPE = renderType(CORE_TEXTURE);
+        private final ModelPart cube;
+
+        public EnergyCube(EntityModelSet entityModelSet) {
+            super(RenderHelper.CUBERESOURCERENDERTYPE);
+            ModelPart root = entityModelSet.bakeLayer(CORE_LAYER);
+            cube = CUBE.getFromRoot(root);
+        }
+
+        public void render(@NotNull PoseStack matrix, @NotNull MultiBufferSource renderer, int light, int overlayLight, int color) {
+            renderToBuffer(matrix, renderer.getBuffer(RENDER_TYPE), light, overlayLight, color);
+        }
+
+        @Override
+        public void renderToBuffer(@NotNull PoseStack matrix, @NotNull VertexConsumer vertexBuilder, int light, int overlayLight, int color) {
+            cube.render(matrix, vertexBuilder, light, overlayLight, color);
+        }
+    }
+
+    //------------------------------------------------ Make Model's
 
     public static final class RenderHelper extends RenderType {
         public static final RenderType HALO;
         public static final RenderType CUBE;
+        public static final Function<ResourceLocation, RenderType> CUBERESOURCERENDERTYPE = Util.memoize(resourceLocation -> RedefinedLight.RenderHelper.CUBE);
+        public static final Function<ResourceLocation, RenderType> HALORESOURCERENDERTYPE = Util.memoize(resourceLocation -> RedefinedLight.RenderHelper.HALO);
         static {
             TextureStateShard haloTexture = new TextureStateShard(ResourceLocation.parse("redefinedlight:halo.png"), false, true);
             CompositeState glState = CompositeState.builder()
@@ -101,8 +188,8 @@ public class RedefinedLight {
             TextureStateShard cubeTexture = new TextureStateShard(ResourceLocation.parse("redefinedlight:energy_core.png"), false, true);
             glState = CompositeState.builder()
                     .setTextureState(cubeTexture)
-                    .setShaderState(RenderType.RENDERTYPE_EYES_SHADER)
-                    .setTransparencyState(RenderType.TRANSLUCENT_TRANSPARENCY)
+                    .setShaderState(RENDERTYPE_EYES_SHADER)
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                     .createCompositeState(true);
             CUBE = RenderTypeAccessor.create("RedefinedLight:energy_core", DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 256, true, false, glState);
         }
@@ -112,7 +199,45 @@ public class RedefinedLight {
         }
     }
 
-    //------------------------------------------------ Halo Renderer
+    public abstract static class Modeler extends Model {
+
+        public Modeler(Function<ResourceLocation, RenderType> renderType) {
+            super(renderType);
+        }
+
+        protected static LayerDefinition createLayerDefinition(int texWidth, int texHeight, ModelPartData... parts) {
+            MeshDefinition meshdefinition = new MeshDefinition();
+            PartDefinition partdefinition = meshdefinition.getRoot();
+            for (ModelPartData part : parts) {
+                part.addToDefinition(partdefinition);
+            }
+            return LayerDefinition.create(meshdefinition, texWidth, texHeight);
+        }
+    }
+
+    public record ModelPartData(String name, CubeListBuilder cubes, PartPose pose, List<ModelPartData> children) {
+
+        public ModelPartData(String name, CubeListBuilder cubes, PartPose pose, ModelPartData... children) {
+            this(name, cubes, pose, List.of(children));
+        }
+
+        public ModelPartData(String name, CubeListBuilder cubes, ModelPartData... children) {
+            this(name, cubes, PartPose.ZERO, children);
+        }
+
+        public void addToDefinition(PartDefinition definition) {
+            PartDefinition subDefinition = definition.addOrReplaceChild(name, cubes, pose);
+            for (ModelPartData child : children) {
+                child.addToDefinition(subDefinition);
+            }
+        }
+
+        public ModelPart getFromRoot(ModelPart part) {
+            return part.getChild(name);
+        }
+    }
+
+    //------------------------------------------------ Renderer
 
     public static class Renderer<T extends LivingEntity, M extends EntityModel<T>> extends RenderLayer<T, M> {
         public Renderer(RenderLayerParent<T,M> renderer) {
@@ -131,20 +256,19 @@ public class RedefinedLight {
                 } else {
                     poseStack.mulPose(RedefinedLight.rotateY(ClientConfig.YRotation.get()));
                 }
-                poseStack.scale(0.75F, -0.75F, -0.75F); //sets halo size
-                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),-1F,0,-1F).setUv(0,0).setColor(1.0F,1.0F,1.0F,1.0F);
-                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),1F,0,-1F).setUv(1,0).setColor(1.0F,1.0F,1.0F,1.0F);
-                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),1F,0,1F).setUv(1,1).setColor(1.0F,1.0F,1.0F,1.0F);
-                buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),-1F,0,1F).setUv(0,1).setColor(1.0F,1.0F,1.0F,1.0F);
+                int test2 = FastColor.ARGB32.color(102,203,228);
+                new Halo(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, test2);
                 poseStack.popPose();
                 //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf("works")));
             }
+            /* Test Cube Model
             poseStack.pushPose();
-            poseStack.scale(2F, -2F, -2F);
-            poseStack.translate(0,2,0);
+            poseStack.scale(1F, -1F, -1F);
+            poseStack.translate(0,2.7,0);
             int test = FastColor.ARGB32.color((int) ((java.lang.Math.sin(((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)*127.5)+127.5),(int) ((java.lang.Math.sin((((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)-2)*127.5)+127.5), (int) ((Math.sin((((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)-4)*127.5)+127.5));
-            new ModelEnergyCore(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, test);
+            new EnergyCube(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, test);
             poseStack.popPose();
+             */
         }
     }
 
@@ -176,13 +300,12 @@ public class RedefinedLight {
         }
         @SubscribeEvent
         public static void registerLayer(EntityRenderersEvent.RegisterLayerDefinitions event) {
-            init((onLoaded) -> {
-                try {
-                    event.registerLayerDefinition(ModelEnergyCore.CORE_LAYER, ModelEnergyCore::createLayerDefinition);
-                } catch (Exception e) {
-                    throw new UncheckedException(e);
-                }
-            });
+            try {
+                event.registerLayerDefinition(EnergyCube.CORE_LAYER, EnergyCube::createLayerDefinition);
+                event.registerLayerDefinition(Halo.HALO_LAYER, Halo::createLayerDefinition);
+            } catch (Exception e) {
+                throw new UncheckedException(e);
+            }
         }
         @SubscribeEvent
         public static void addEntityLayers(EntityRenderersEvent.AddLayers event) {
@@ -211,9 +334,9 @@ public class RedefinedLight {
         }
     }
 
-    //------------------------------------------------ Halo Customizer
+    //------------------------------------------------ Customizer
 
-    /*
+    /* may be useful later
     public static Vec3 fromEntityCenter(Entity e) {
         return new Vec3(e.getX(), e.getY() + e.getBbHeight() / 2, e.getZ());
     }
