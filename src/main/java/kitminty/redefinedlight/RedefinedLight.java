@@ -8,15 +8,14 @@ import kitminty.redefinedlight.mixin.RenderTypeAccessor;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
@@ -32,9 +31,11 @@ import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
+import org.apache.commons.lang3.exception.UncheckedException;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
+import kitminty.redefinedlight.ModelTest.*;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -66,6 +67,7 @@ public class RedefinedLight {
         public static final ModConfigSpec.ConfigValue<Double> XPosition;
         public static final ModConfigSpec.ConfigValue<Double> YPosition;
         public static final ModConfigSpec.ConfigValue<Double> ZPosition;
+        public static final ModConfigSpec.ConfigValue<Double> RSPEED;
 
         static {
             BUILDER.push("Configs");
@@ -76,6 +78,7 @@ public class RedefinedLight {
             XPosition = BUILDER.comment("X Position On Halo").define("halo_x_position", 0.2);
             YPosition = BUILDER.comment("Y Position On Halo").define("halo_y_position", -0.65);
             ZPosition = BUILDER.comment("Z Position On Halo").define("halo_z_position", 0.0);
+            RSPEED = BUILDER.comment("Speed Of Rainbow").define("r_speed", 0.0);
             BUILDER.pop();
             SPEC = BUILDER.build();
         }
@@ -84,9 +87,7 @@ public class RedefinedLight {
 
     public static final class RenderHelper extends RenderType {
         public static final RenderType HALO;
-        private static RenderType makeLayer(CompositeState glState) {
-            return RenderTypeAccessor.create("RedefinedLight:halo", DefaultVertexFormat.POSITION_TEX_COLOR/*POSITION_COLOR_TEX*/, VertexFormat.Mode.QUADS, 64, false, false, glState);
-        }
+        public static final RenderType CUBE;
         static {
             TextureStateShard haloTexture = new TextureStateShard(ResourceLocation.parse("redefinedlight:halo.png"), false, true);
             CompositeState glState = CompositeState.builder()
@@ -95,7 +96,15 @@ public class RedefinedLight {
                     .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                     .setCullState(NO_CULL)
                     .createCompositeState(true);
-            HALO = makeLayer(glState);
+            HALO = RenderTypeAccessor.create("RedefinedLight:halo", DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS, 64, false, false, glState);
+
+            TextureStateShard cubeTexture = new TextureStateShard(ResourceLocation.parse("redefinedlight:energy_core.png"), false, true);
+            glState = CompositeState.builder()
+                    .setTextureState(cubeTexture)
+                    .setShaderState(RenderType.RENDERTYPE_EYES_SHADER)
+                    .setTransparencyState(RenderType.TRANSLUCENT_TRANSPARENCY)
+                    .createCompositeState(true);
+            CUBE = RenderTypeAccessor.create("RedefinedLight:energy_core", DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 256, true, false, glState);
         }
         private RenderHelper(String string, VertexFormat vertexFormat, VertexFormat.Mode mode, int i, boolean bl, boolean bl2, Runnable runnable, Runnable runnable2) {
             super(string, vertexFormat, mode, i, bl, bl2, runnable, runnable2);
@@ -112,6 +121,7 @@ public class RedefinedLight {
         @Override
         public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float age, float netHeadYaw, float headPitch) {
             if(!livingEntity.isInvisible() && ClientForgeEvents.alternator && livingEntity.getName().getString().equals(Objects.requireNonNull(Minecraft.getInstance().player).getName().getString())) {
+                poseStack.pushPose();
                 poseStack.translate(ClientConfig.XPosition.get(), ClientConfig.YPosition.get(), ClientConfig.ZPosition.get()); //determines halo position
                 //Boo - Isaac
                 poseStack.mulPose(RedefinedLight.rotateX(ClientConfig.XRotation.get()));
@@ -126,8 +136,15 @@ public class RedefinedLight {
                 buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),1F,0,-1F).setUv(1,0).setColor(1.0F,1.0F,1.0F,1.0F);
                 buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),1F,0,1F).setUv(1,1).setColor(1.0F,1.0F,1.0F,1.0F);
                 buffer.getBuffer(RenderHelper.HALO).addVertex(poseStack.last().pose(),-1F,0,1F).setUv(0,1).setColor(1.0F,1.0F,1.0F,1.0F);
+                poseStack.popPose();
                 //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf("works")));
             }
+            poseStack.pushPose();
+            poseStack.scale(2F, -2F, -2F);
+            poseStack.translate(0,2,0);
+            int test = FastColor.ARGB32.color((int) ((java.lang.Math.sin(((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)*127.5)+127.5),(int) ((java.lang.Math.sin((((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)-2)*127.5)+127.5), (int) ((Math.sin((((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)-4)*127.5)+127.5));
+            new ModelEnergyCore(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, test);
+            poseStack.popPose();
         }
     }
 
@@ -151,9 +168,19 @@ public class RedefinedLight {
         public static void registerShaders(RegisterShadersEvent evt) {
             init((onLoaded) -> {
                 try {
-                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), ResourceLocation.parse("redefinedlight:halo"), DefaultVertexFormat.POSITION_TEX_COLOR/*POSITION_COLOR_TEX*/), onLoaded);
+                    evt.registerShader(new ShaderInstance(evt.getResourceProvider(), ResourceLocation.parse("redefinedlight:halo"), DefaultVertexFormat.POSITION_TEX_COLOR), onLoaded);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
+                }
+            });
+        }
+        @SubscribeEvent
+        public static void registerLayer(EntityRenderersEvent.RegisterLayerDefinitions event) {
+            init((onLoaded) -> {
+                try {
+                    event.registerLayerDefinition(ModelEnergyCore.CORE_LAYER, ModelEnergyCore::createLayerDefinition);
+                } catch (Exception e) {
+                    throw new UncheckedException(e);
                 }
             });
         }
