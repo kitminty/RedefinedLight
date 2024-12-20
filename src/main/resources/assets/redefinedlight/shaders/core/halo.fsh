@@ -12,7 +12,7 @@ out vec4 fragColor;
 
 void main() {
     float timeTicks = GameTime * 24000;
-    float brightness = sin(timeTicks / 20.0) * 0.5 + 0.5;
+    float brightness = sin(timeTicks / 20.0) * 0.5 + 1.027;
 
     vec4 sum = vec4(0);
     for(int i = -4 ; i < 4; i++) {

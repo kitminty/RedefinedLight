@@ -73,24 +73,26 @@ public class RedefinedLight {
         public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
         public static final ModConfigSpec SPEC;
         public static final ModConfigSpec.ConfigValue<Boolean> EnableClock;
+        public static final ModConfigSpec.ConfigValue<Boolean> EnableRain;
         public static final ModConfigSpec.ConfigValue<Integer> XRotation;
         public static final ModConfigSpec.ConfigValue<Integer> YRotation;
         public static final ModConfigSpec.ConfigValue<Integer> ZRotation;
         public static final ModConfigSpec.ConfigValue<Double> XPosition;
         public static final ModConfigSpec.ConfigValue<Double> YPosition;
         public static final ModConfigSpec.ConfigValue<Double> ZPosition;
-        public static final ModConfigSpec.ConfigValue<Double> RSPEED;
+        public static final ModConfigSpec.ConfigValue<Double> RainSpeed;
 
         static {
             BUILDER.push("Configs");
             EnableClock = BUILDER.comment("Enable Clock Rotation On Halo").define("enable_halo_clock_rotation", true);
+            EnableRain = BUILDER.comment("Enable Clock Rotation On Halo").define("enable_rainbow", true);
             XRotation = BUILDER.comment("X Rotation On Halo").define("halo_x_rotation", 0);
             YRotation = BUILDER.comment("Y Rotation On Halo").define("halo_y_rotation", 0);
             ZRotation = BUILDER.comment("Z Rotation On Halo").define("halo_z_rotation", 30);
             XPosition = BUILDER.comment("X Position On Halo").define("halo_x_position", 0.2);
             YPosition = BUILDER.comment("Y Position On Halo").define("halo_y_position", -0.65);
             ZPosition = BUILDER.comment("Z Position On Halo").define("halo_z_position", 0.0);
-            RSPEED = BUILDER.comment("Speed Of Rainbow").define("r_speed", 0.0);
+            RainSpeed = BUILDER.comment("Speed Of Rainbow").define("r_speed", 0.0);
             BUILDER.pop();
             SPEC = BUILDER.build();
         }
@@ -101,7 +103,7 @@ public class RedefinedLight {
     public static class Halo extends Modeler {
 
         public static final ModelLayerLocation HALO_LAYER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(RedefinedLight.modId, "halo"), "main");
-        private static final ResourceLocation HALO_TEXTURE = ResourceLocation.parse("redefinedlight:halo.png");
+        private static final ResourceLocation HALO_TEXTURE = ResourceLocation.parse("redefinedlight:ghalo.png");
 
         private static final ModelPartData HALO = new ModelPartData("halo", CubeListBuilder.create()
                 .texOffs(0, 0)
@@ -176,7 +178,7 @@ public class RedefinedLight {
         public static final Function<ResourceLocation, RenderType> CUBERESOURCERENDERTYPE = Util.memoize(resourceLocation -> RedefinedLight.RenderHelper.CUBE);
         public static final Function<ResourceLocation, RenderType> HALORESOURCERENDERTYPE = Util.memoize(resourceLocation -> RedefinedLight.RenderHelper.HALO);
         static {
-            TextureStateShard haloTexture = new TextureStateShard(ResourceLocation.parse("redefinedlight:halo.png"), false, true);
+            TextureStateShard haloTexture = new TextureStateShard(ResourceLocation.parse("redefinedlight:ghalo.png"), false, true);
             CompositeState glState = CompositeState.builder()
                     .setTextureState(haloTexture)
                     .setShaderState(new ShaderStateShard(RedefinedLight::halo))
@@ -256,8 +258,13 @@ public class RedefinedLight {
                 } else {
                     poseStack.mulPose(RedefinedLight.rotateY(ClientConfig.YRotation.get()));
                 }
-                int test2 = FastColor.ARGB32.color(102,203,228);
-                new Halo(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, test2);
+                int Color;
+                if (ClientConfig.EnableRain.get()) {
+                    Color = FastColor.ARGB32.color((int) ((java.lang.Math.sin(((livingEntity.tickCount+partialTicks)* ClientConfig.RainSpeed.get())/127.5)*127.5)+127.5),(int) ((java.lang.Math.sin((((livingEntity.tickCount+partialTicks)* ClientConfig.RainSpeed.get())/127.5)-2)*127.5)+127.5), (int) ((Math.sin((((livingEntity.tickCount+partialTicks)* ClientConfig.RainSpeed.get())/127.5)-4)*127.5)+127.5));
+                } else {
+                    Color = FastColor.ARGB32.color(62,255,255);
+                }
+                new Halo(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, Color);
                 poseStack.popPose();
                 //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf("works")));
             }
