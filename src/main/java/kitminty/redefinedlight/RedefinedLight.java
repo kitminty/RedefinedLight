@@ -81,11 +81,6 @@ public class RedefinedLight {
         public static void onKeyRegister(RegisterKeyMappingsEvent event) {
             event.register(RLKEYM);
         }
-
-        @SubscribeEvent
-        public void RegisterCommands(RegisterCommandsEvent event) {
-            CommandTest.register(event.getDispatcher());
-        }
     }
 
     @EventBusSubscriber(modid = RedefinedLight.modId, value = Dist.CLIENT)
@@ -98,6 +93,11 @@ public class RedefinedLight {
                 assert Minecraft.getInstance().player != null;
                 Minecraft.getInstance().player.sendSystemMessage(Component.literal(alternator ? "On" : "Off"));
             }
+        }
+
+        @SubscribeEvent
+        public static void RegisterCommands(RegisterCommandsEvent event) {
+            CommandTest.register(event.getDispatcher());
         }
     }
 }
