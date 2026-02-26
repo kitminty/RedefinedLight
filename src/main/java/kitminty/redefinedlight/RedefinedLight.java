@@ -2,6 +2,10 @@ package kitminty.redefinedlight;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import kitminty.redefinedlight.Commands.CommandTest;
+import kitminty.redefinedlight.PlayerModelAccessories.EnergyCube;
+import kitminty.redefinedlight.PlayerModelAccessories.Halo;
+import kitminty.redefinedlight.PlayerModelAccessories.Rendering;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;

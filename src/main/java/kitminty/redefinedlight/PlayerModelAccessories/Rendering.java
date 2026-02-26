@@ -1,8 +1,10 @@
-package kitminty.redefinedlight;
+package kitminty.redefinedlight.PlayerModelAccessories;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import kitminty.redefinedlight.Config;
+import kitminty.redefinedlight.RedefinedLight;
 import kitminty.redefinedlight.mixin.RenderTypeAccessor;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -68,16 +70,17 @@ public class Rendering {
                 }
                 new Halo(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, Color);
                 poseStack.popPose();
-                //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf("works")));
+                //Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.valueOf(Color)));
             }
-            /* Test Cube Model
+
+            /* Cube code
             poseStack.pushPose();
             poseStack.scale(1F, -1F, -1F);
             poseStack.translate(0,2.7,0);
-            int test = FastColor.ARGB32.color((int) ((java.lang.Math.sin(((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)*127.5)+127.5),(int) ((java.lang.Math.sin((((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)-2)*127.5)+127.5), (int) ((Math.sin((((livingEntity.tickCount+partialTicks)* RedefinedLight.ClientConfig.RSPEED.get())/127.5)-4)*127.5)+127.5));
+            int test = FastColor.ARGB32.color((int) ((java.lang.Math.sin(((livingEntity.tickCount+partialTicks)* Config.RainSpeed.get())/127.5)*127.5)+127.5),(int) ((java.lang.Math.sin((((livingEntity.tickCount+partialTicks)* Config.RainSpeed.get())/127.5)-2)*127.5)+127.5), (int) ((Math.sin((((livingEntity.tickCount+partialTicks)* Config.RainSpeed.get())/127.5)-4)*127.5)+127.5));
             new EnergyCube(Minecraft.getInstance().getEntityModels()).render(poseStack, buffer, LightTexture.FULL_BRIGHT, 1, test);
             poseStack.popPose();
-             */
+            */
         }
     }
 
